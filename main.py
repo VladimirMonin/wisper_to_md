@@ -73,34 +73,27 @@ class SpeechRecognitionService:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.client = OpenAI(api_key=self.api_key)
-        self.file: bytes | None = None
         self.file_path: str | None = None
 
-    
-    def open_file(self, file_path: str) -> None:
-        """
-        Открываем файл на чтение в бинарном режиме
-        """
-        with open(file_path, "rb") as file:
-            self.file = file.read()
         
-    def __request(self, settings_dict: dict[str, str]) -> str:
+    def __request(self) -> str:
         """
         Отправляем запрос на сервер OpenAI
         """
+        audio_file= open(self.file_path, "rb")
         transcription = self.client.audio.transcriptions.create(
-            file=self.file,
+            file=audio_file,
             model="whisper-1",
-            **settings_dict
+
         )
         return transcription.text
     
-    def __call__(self, file_path: str, settings_dict: dict[str, str]) -> str:
+    def __call__(self, file_path: str) -> str:
         """
         Отправляем файл на сервер OpenAI и возвращаем текстовую транскрипцию
         """
-        self.open_file(file_path)
-        return self.__request(settings_dict)
+        self.file_path = file_path
+        return self.__request()
     
 
 
@@ -110,5 +103,5 @@ speech_recognition = SpeechRecognitionService(OPEN_AI_KEY)
 
 file_path = TEST_FILE
 if validator(file_path):
-    print(speech_recognition(file_path, settings_dict))
+    print(speech_recognition(file_path))
     
