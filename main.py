@@ -17,6 +17,7 @@ TEST_FILE = "./1. Введение в Курс по CSS.mp4"
 
 client = OpenAI(api_key=OPEN_AI_KEY)
 
+settings_dict = {}
 
 # audio_file= open(TEST_FILE, "rb")
 # transcription = client.audio.transcriptions.create(
@@ -52,7 +53,62 @@ class Validator:
         return self.validate(file_path)
 
 
-# Тестируем класс 
+class SpeechRecognitionService:
+    """
+    Класс для отправки аудио и видео файлов на сервер OpenAI и получения текстовой транскрипции
+    Используется внутри класса WisperFacade, сразу после валидации файла
+
+    Обрабатывает файлы через __call__ метод
+
+    Атрибуты:
+    client - объект класса OpenAI
+    api_key - ключ для доступа к API OpenAI
+
+    Методы:
+    __call__ - отправляет файл на сервер OpenAI и возвращает текстовую транскрипцию, отдает результат в WisperFacade
+    open_file - открывает файл на чтение
+    request - отправляет запрос к серверу OpenAI
+
+    """
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.client = OpenAI(api_key=self.api_key)
+        self.file: bytes | None = None
+        self.file_path: str | None = None
+
+    
+    def open_file(self, file_path: str) -> None:
+        """
+        Открываем файл на чтение в бинарном режиме
+        """
+        with open(file_path, "rb") as file:
+            self.file = file.read()
+        
+    def __request(self, settings_dict: dict[str, str]) -> str:
+        """
+        Отправляем запрос на сервер OpenAI
+        """
+        transcription = self.client.audio.transcriptions.create(
+            file=self.file,
+            model="whisper-1",
+            **settings_dict
+        )
+        return transcription.text
+    
+    def __call__(self, file_path: str, settings_dict: dict[str, str]) -> str:
+        """
+        Отправляем файл на сервер OpenAI и возвращаем текстовую транскрипцию
+        """
+        self.open_file(file_path)
+        return self.__request(settings_dict)
+    
+
+
+# Тестирование
 validator = Validator(AVAILABLE_EXTENSIONS, MAX_SIZE_FILE_MB)
-print(validator(TEST_FILE))
-print(validator(TEST_FILE_2))
+speech_recognition = SpeechRecognitionService(OPEN_AI_KEY)
+
+file_path = TEST_FILE
+if validator(file_path):
+    print(speech_recognition(file_path, settings_dict))
+    
