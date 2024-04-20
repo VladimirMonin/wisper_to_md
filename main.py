@@ -12,7 +12,7 @@ from settings import OPEN_AI_KEY, AVAILABLE_EXTENSIONS, MAX_SIZE_FILE_MB
 from openai import OpenAI
 import os
 
-TEST_FILE = "./1. Введение в Курс по CSS.mp4"
+TEST_FILE = r"E:\COURSES\Добрый добрый Джанго - Балакирев\10. OAuth 2.0 - социальная аутентификация\10.1 Протокол OAuth 2.0. Установка пакета Python-Social-Auth\Шаг 1 – Протокол OAuth 2.0. Установка пакета Python-Social-Auth.mp4"
 
 
 client = OpenAI(api_key=OPEN_AI_KEY)
@@ -97,11 +97,32 @@ class SpeechRecognitionService:
     
 
 
-# Тестирование
-validator = Validator(AVAILABLE_EXTENSIONS, MAX_SIZE_FILE_MB)
-speech_recognition = SpeechRecognitionService(OPEN_AI_KEY)
+class WisperFacade:
+    """
+    Управляющий класс
 
-file_path = TEST_FILE
-if validator(file_path):
-    print(speech_recognition(file_path))
+    Атрибуты:
+    validator - объект класса FileValidator
+    speech_recognition - объект класса SpeechRecognitionService
+
+    Методы:
+    __call__ - вызывает методы валидации файла и отправки файла на сервер OpenAI
+    """
+    def __init__(self, api_key: str, available_extensions: tuple[str], max_size_file_mb: int):
+        self.validator = Validator(available_extensions, max_size_file_mb)
+        self.speech_recognition = SpeechRecognitionService(api_key)
     
+    def __call__(self, file_path: str) -> str:
+        if self.validator(file_path):
+            return self.speech_recognition(file_path)
+        else:
+            return "File is not valid"
+        
+
+wisper = WisperFacade(OPEN_AI_KEY, AVAILABLE_EXTENSIONS, MAX_SIZE_FILE_MB)
+result = wisper(TEST_FILE)
+
+
+# Сохраним в markdown файл
+with open("result.md", "w", encoding="utf-8") as file:
+    file.write(result)
